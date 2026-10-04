@@ -27,8 +27,11 @@ interface Breadcrumb {
 
 const MAX_BREADCRUMBS = 100;
 const MAX_LOGS = 100;
-const HIDDEN_BUSY_THRESHOLD = 0.5;
-const HIDDEN_BUSY_WINDOW_S = 60;
+// A backgrounded app should be nearly idle. Sustained JS busy time or frequent timer wakeups
+// (each wakeup keeps the CPU out of low-power states) both mean battery drain.
+const HIDDEN_BUSY_THRESHOLD = 0.25;
+const HIDDEN_WAKEUPS_THRESHOLD = 50; // callbacks per second
+const HIDDEN_WINDOW_S = 60;
 const HANG_MS = 3000;
 
 let cfg: VitalsConfig | null = null;
@@ -125,16 +128,16 @@ export function startSession() {
 }
 
 function onPerfSample(s: PerfSample) {
-  // CPU busy while the app is in the background → battery drain.
-  if (s.hidden && s.busy >= HIDDEN_BUSY_THRESHOLD) hiddenBusyRun.push(s);
+  // CPU activity while the app is in the background → battery drain.
+  if (s.hidden && (s.busy >= HIDDEN_BUSY_THRESHOLD || s.callbacks >= HIDDEN_WAKEUPS_THRESHOLD)) hiddenBusyRun.push(s);
   else hiddenBusyRun = [];
-  if (hiddenBusyRun.length >= HIDDEN_BUSY_WINDOW_S && Date.now() - lastPerfReport > 5 * 60_000) {
+  if (hiddenBusyRun.length >= HIDDEN_WINDOW_S && Date.now() - lastPerfReport > 5 * 60_000) {
     const avg = hiddenBusyRun.reduce((a, x) => a + x.busy, 0) / hiddenBusyRun.length;
     const cps = hiddenBusyRun.reduce((a, x) => a + x.callbacks, 0) / hiddenBusyRun.length;
     lastPerfReport = Date.now();
-    breadcrumb("perf", `main thread busy ${Math.round(avg * 100)}% while hidden`);
-    capturePerf("perf", "cpu_busy_hidden", Math.round(avg * 1000) / 10, "%", {
-      callbacks_per_s: Math.round(cps),
+    breadcrumb("perf", `${Math.round(cps)} timer wakeups/s while hidden (JS busy ${Math.round(avg * 100)}%)`);
+    capturePerf("perf", "background_cpu", Math.round(cps), "wakeups/s", {
+      js_busy_pct: Math.round(avg * 1000) / 10,
       hidden_for_s: hiddenBusyRun.length,
       samples: hiddenBusyRun.slice(-10),
     }, hiddenBusyRun.length);
@@ -208,6 +211,11 @@ function safeJson(v: unknown): string {
   } catch {
     return String(v);
   }
+}
+
+/** Test helper: feed perf samples through the background-activity rule. */
+export function _feedPerf(samples: PerfSample[]) {
+  for (const s of samples) onPerfSample(s);
 }
 
 /** Test helper. */
