@@ -1,0 +1,39 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const flags = vi.hoisted(() => ({ v2: false }));
+vi.mock("../src/flags", () => ({
+  FLAGS: { notifRouterV2: "notif_router_v2" },
+  flag: () => flags.v2,
+}));
+
+import { routeDeepLink } from "../src/notifications/router";
+import { hydrate, resetSessionForTests } from "../src/store/session";
+
+describe("router v2 waits for session hydration", () => {
+  beforeEach(() => {
+    flags.v2 = true;
+    resetSessionForTests();
+    vi.useFakeTimers();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("waits for hydration before navigating when push notification tapped early", async () => {
+    const navigate = vi.fn();
+    // Start hydration with ~350ms delay (simulating IndexedDB restore)
+    void hydrate({ delayMs: 350 });
+    // Immediately tap a push notification (before hydration completes)
+    const routedPromise = routeDeepLink("/ride/abc", navigate, "push");
+    // Advance timers slightly but NOT past hydration delay
+    await vi.advanceTimersByTimeAsync(100);
+    // Navigation should not have happened yet (waiting for hydration)
+    expect(navigate).not.toHaveBeenCalled();
+    // Now advance past hydration delay
+    await vi.advanceTimersByTimeAsync(300);
+    // Navigation should now have happened
+    expect(navigate).toHaveBeenCalledWith("/ride/abc", expect.objectContaining({
+      state: expect.objectContaining({ riderId: expect.any(String) })
+    }));
+    // The promise should resolve
+    await expect(routedPromise).resolves.toBeUndefined();
+  });
+});
