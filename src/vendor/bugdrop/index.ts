@@ -149,12 +149,25 @@ export interface Submission {
   attachments?: Blob[];
 }
 
+const isReporterUi = (node: HTMLElement) =>
+  !(node.classList?.contains("bd-fab") || node.classList?.contains("bd-backdrop"));
+
 export async function captureScreenshot(): Promise<Blob | null> {
-  const el = cfg?.screenshotTarget?.() ?? document.getElementById("root");
-  if (!el) return null;
+  let el = cfg?.screenshotTarget?.() ?? document.getElementById("root");
+  // A crashed app can leave its root empty (blank screen): capture the page itself instead.
+  if (!el || el.getBoundingClientRect().height < 1) el = document.body;
   try {
-    const dataUrl = await toPng(el, { pixelRatio: 1, cacheBust: true, backgroundColor: getComputedStyle(document.body).backgroundColor });
-    return await (await fetch(dataUrl)).blob();
+    const dataUrl = await toPng(el, {
+      pixelRatio: 1,
+      cacheBust: true,
+      backgroundColor: getComputedStyle(document.body).backgroundColor,
+      width: Math.max(el.clientWidth, 1),
+      height: Math.max(el.clientHeight, window.innerHeight, 1),
+      filter: isReporterUi,
+    });
+    if (!dataUrl.startsWith("data:image/png;base64,") || dataUrl.length < 100) return null;
+    const blob = await (await fetch(dataUrl)).blob();
+    return blob.size > 0 ? blob : null;
   } catch {
     return null;
   }
