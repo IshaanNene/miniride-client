@@ -1,0 +1,24 @@
+# How DebugAssist builds, tests and validates this repository (fetched by the harness at run time).
+version: 1
+repo: miniride-client
+default_agent_type: web-crash
+toolchain_image: debugassist/runtime-web-crash
+bot_branch_prefix: debugassist/
+components:
+  client:
+    path: .
+    language: typescript
+    owner: rider-app
+    setup: pnpm install --frozen-lockfile
+    build: pnpm build
+    lint: pnpm lint && pnpm typecheck
+    test: pnpm test
+    test_file_glob: "test/**/*.test.{ts,tsx}"
+e2e:
+  # Playwright against the running stack; the validation tier injects the user's captured
+  # environment (network profile via Toxiproxy/CDP, CPU throttling, visibility, flag exposures).
+  requires: [client, gateway, dispatch, payments, unleash]
+  command: pnpm exec playwright test
+  env:
+    E2E_BASE_URL: http://localhost:8080
+extra_skills: [web-client-fixes, perf-and-battery]

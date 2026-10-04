@@ -1,0 +1,6 @@
+# Logical team in the trailing comment; DebugAssist's catalog.yaml maps teams to on-call rotations.
+*                         @IshaanNene  # team:rider-app
+/src/notifications/       @IshaanNene  # team:rider-engagement
+/src/eta/                 @IshaanNene  # team:rider-app
+/src/telemetry/           @IshaanNene  # team:developer-platform
+/.github/                 @IshaanNene  # team:developer-platform
