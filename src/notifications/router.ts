@@ -1,8 +1,9 @@
 // Deep-link routing for notifications (in-app and push).
 //
 // v1 (default): wait until the session is restored, then navigate.
-// v2 (flag notif_router_v2): resolves ride links against the active ride so the ride screen can
-// open with the driver card prefilled, and tags the navigation with the rider id.
+// v2 (flag notif_router_v2): navigates immediately — the ride screen loads its own data, so there is
+// no need to wait for the session restore — and resolves ride links against the active ride so the
+// screen can open with the driver card prefilled, tagging the navigation with the rider id.
 import { FLAGS, flag } from "../flags";
 import { sessionStore, whenHydrated } from "../store/session";
 import { analytics } from "../telemetry/analytics";
@@ -22,7 +23,6 @@ async function routeV1(link: string, navigate: Navigate) {
 }
 
 async function routeV2(link: string, navigate: Navigate) {
-  await whenHydrated();
   const state = sessionStore.getState();
   const riderId = state.session!.riderId;
   const rideMatch = RIDE_LINK.exec(link);

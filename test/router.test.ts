@@ -20,7 +20,24 @@ describe.each([
   });
   afterEach(() => vi.useRealTimers());
 
-  it("a tap right after launch waits for the session instead of crashing", async () => {
+  it("routes unknown links home", async () => {
+    const navigate = vi.fn();
+    void hydrate({ delayMs: 0 });
+    await vi.advanceTimersByTimeAsync(0);
+    await routeDeepLink("javascript:alert(1)", navigate, "in_app");
+    expect(navigate.mock.calls[0]![0]).toBe("/");
+  });
+});
+
+describe("router v1", () => {
+  beforeEach(() => {
+    flags.v2 = false;
+    resetSessionForTests();
+    vi.useFakeTimers();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("a tap right after launch waits for the session", async () => {
     const navigate = vi.fn();
     void hydrate({ delayMs: 350 });
     const routed = routeDeepLink("/ride/abc", navigate, "push"); // ~0 ms after launch
@@ -31,13 +48,22 @@ describe.each([
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(navigate.mock.calls[0]![0]).toBe("/ride/abc");
   });
+});
 
-  it("routes unknown links home", async () => {
+describe("router v2", () => {
+  beforeEach(() => {
+    flags.v2 = true;
+    resetSessionForTests();
+  });
+
+  it("navigates without waiting", async () => {
+    vi.useFakeTimers();
+    void hydrate({ delayMs: 10 });
+    await vi.advanceTimersByTimeAsync(20);
+    vi.useRealTimers();
     const navigate = vi.fn();
-    void hydrate({ delayMs: 0 });
-    await vi.advanceTimersByTimeAsync(0);
-    await routeDeepLink("javascript:alert(1)", navigate, "in_app");
-    expect(navigate.mock.calls[0]![0]).toBe("/");
+    await routeDeepLink("/notifications", navigate, "push");
+    expect(navigate).toHaveBeenCalledWith("/notifications", { state: expect.objectContaining({ riderId: expect.any(String) }) });
   });
 });
 
