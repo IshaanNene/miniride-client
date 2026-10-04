@@ -23,6 +23,7 @@ async function routeV1(link: string, navigate: Navigate) {
 }
 
 async function routeV2(link: string, navigate: Navigate) {
+  await whenHydrated();
   const state = sessionStore.getState();
   const riderId = state.session!.riderId;
   const rideMatch = RIDE_LINK.exec(link);
