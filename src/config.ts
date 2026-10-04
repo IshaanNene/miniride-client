@@ -10,6 +10,8 @@ export const config = {
   unleashUrl: (env.VITE_UNLEASH_URL as string | undefined) ?? "",
   unleashClientKey: (env.VITE_UNLEASH_CLIENT_KEY as string | undefined) ?? "",
   otlpTracesUrl: (env.VITE_OTLP_TRACES_URL as string | undefined) ?? "",
+  vitalsUrl: (env.VITE_VITALS_URL as string | undefined) ?? "",
+  bugdropUrl: (env.VITE_BUGDROP_URL as string | undefined) ?? "",
   // Flag overrides via ?flags=a,b are for local testing only.
   allowFlagOverrides: env.DEV || env.VITE_ALLOW_FLAG_OVERRIDES === "true",
   city: (env.VITE_DEFAULT_CITY as string | undefined) ?? "sf",

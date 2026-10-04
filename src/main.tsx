@@ -7,11 +7,13 @@ import { setupFlags } from "./flags";
 import { routeDeepLink } from "./notifications/router";
 import { takeLaunchPush } from "./notifications/push";
 import { CrashScreen } from "./screens/CrashScreen";
-import { hydrate } from "./store/session";
+import { hydrate, whenHydrated } from "./store/session";
 import { analytics } from "./telemetry/analytics";
+import { reportSessionStart, setupQuality } from "./telemetry/quality";
 import { setupTracing } from "./telemetry/tracing";
 import "./styles.css";
 
+setupQuality(); // first, so crash handlers see everything
 setupTracing();
 analytics.start();
 analytics.track("app_launch", { version: config.appVersion });
@@ -39,7 +41,9 @@ root.render(
 );
 
 void hydrate({ defaultCity: config.city });
-void setupFlags().then(() => {
+const flagsReady = setupFlags();
+void Promise.all([flagsReady, whenHydrated()]).then(reportSessionStart);
+void flagsReady.then(() => {
   if (launchPush) void routeDeepLink(launchPush.deepLink, (to, o) => void router.navigate(to, o), "push");
 });
 

@@ -8,6 +8,8 @@ ARG VITE_GATEWAY_URL=http://localhost:4000
 ARG VITE_UNLEASH_URL=http://localhost:4242/api/frontend
 ARG VITE_UNLEASH_CLIENT_KEY=default:development.unleash-insecure-frontend-api-token
 ARG VITE_OTLP_TRACES_URL=http://localhost:4318/v1/traces
+ARG VITE_VITALS_URL=http://localhost:8100
+ARG VITE_BUGDROP_URL=http://localhost:8200
 ARG VITE_ALLOW_FLAG_OVERRIDES=false
 RUN pnpm build
 
